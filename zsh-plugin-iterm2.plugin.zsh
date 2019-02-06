@@ -24,15 +24,24 @@ sys_hostname() {
 
 # ==============================================================================
 
+__JWALTER_PLUGIN_ITERM2_BADGE=""
+
 badge() {
 	local TEXT
 
 	TEXT="${*}"
+	if [ "${TEXT}" = "reset" ]; then
+		TEXT="${__JWALTER_PLUGIN_ITERM2_BADGE}"
+	fi
+
 	TEXT="$(sed -e "s/%u/$(whoami)/g" <<<"${TEXT}")"
 	TEXT="$(sed -e "s/%h/$(sys_hostname)/g" <<<"${TEXT}")"
 
+	__JWALTER_PLUGIN_ITERM2_BADGE="${TEXT}"
 	printf "\e]1337;SetBadgeFormat=%s\a" "$(base64 <<<"${TEXT}")"
 }
 
-badge "%h"
+if [ "$(uname -s)" != "Darwin" ]; then
+	badge "%h"
+fi
 unset -f sys_hostname
