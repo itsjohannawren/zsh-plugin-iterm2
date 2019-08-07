@@ -24,14 +24,42 @@ sys_hostname() {
 
 # ==============================================================================
 
-__JWALTER_PLUGIN_ITERM2_BADGE=""
+__JWALTER_PLUGIN_ITERM2_CURSOR="1"
+cursor() {
+	local CURSOR
 
+	case "${1}" in
+		--last)
+			CURSOR="${__JWALTER_PLUGIN_ITERM2_CURSOR}"
+			;;
+		0|block)
+			CURSOR="0"
+			;;
+		1|bar)
+			CURSOR="1"
+			;;
+		2|underline)
+			CURSOR="2"
+			;;
+		*)
+			echo "Error: Unknown cursor" 1>&2
+			return 1
+			;;
+	esac
+
+	__JWALTER_PLUGIN_ITERM2_CURSOR="${CURSOR}"
+	echo -ne "\e]1337;CursorShape=${CURSOR}\a"
+}
+
+__JWALTER_PLUGIN_ITERM2_BADGE=""
 badge() {
 	local TEXT
 
 	TEXT="${*}"
-	if [ "${TEXT}" = "reset" ]; then
+	if [ "${TEXT}" = "--last" ]; then
 		TEXT="${__JWALTER_PLUGIN_ITERM2_BADGE}"
+	elif [ "${TEXT}" = "--reset" ]; then
+		TEXT=""
 	fi
 
 	TEXT="$(sed -e "s/%u/$(whoami)/g" <<<"${TEXT}")"
@@ -40,6 +68,36 @@ badge() {
 	__JWALTER_PLUGIN_ITERM2_BADGE="${TEXT}"
 	printf "\e]1337;SetBadgeFormat=%s\a" "$(base64 <<<"${TEXT}")"
 }
+
+stealfocus() {
+	echo -ne "\e]1337;StealFocus\a"
+}
+
+clearsb() {
+	echo -ne "\e]1337;ClearScrollback\a"
+}
+
+tabbg() {
+	local RED GREEN BLUE
+
+	RED="${1}"
+	GREEN="${2}"
+	BLUE="${3}"
+
+	if [ "${RED}" = "--reset" ] && [ -z "${GREEN}" ] && [ -z "${BLUE}" ]; then
+		echo -ne "\e]6;1;bg;*;default\a"
+		return 0
+	fi
+
+	if ! grep -qE '^(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[0-9][0-9]?) (25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[0-9][0-9]?) (25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[0-9][0-9]?)$' <<<"${RED} ${GREEN} ${BLUE}"; then
+		echo "Error: Three integers (0-255) are required" 1>&2
+		return 1
+	fi
+
+	echo -ne "\e]6;1;bg;red;brightness;${RED}\a\e]6;1;bg;green;brightness;${GREEN}\a\e]6;1;bg;blue;brightness;${BLUE}\a"
+}
+
+# ==============================================================================
 
 if [ "$(uname -s)" != "Darwin" ]; then
 	badge "%h"
